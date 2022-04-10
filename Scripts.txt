@@ -49,13 +49,16 @@ display(df) #let's have a look at the data before creating the CSV file and load
 
 ###LOAD THE FILE INTO S3####
 # prepare csv file name   
-pathname = 's3:/NAME_OF_YOUR_S3_BUCKET/'#specify location of s3:/{my-bucket}/
-filename= 'charities_bureau_scrape_' #name of your group
+pathname = 'database-updates-m10-assignment/'#specify location of s3:/{my-bucket}/
+filenames = f"{pathname}charities-bureau-scrape.csv" #name of the filepath and csv file
 datetime = time.strftime("%Y%m%d%H%M%S") #timestamp
-filenames3 = "%s%s%s.csv"%(pathname,filename,datetime) #name of the filepath and csv file
+filenames3 = "%s%s%s.csv"%(filenames,pathname,datetime) #name of the filepath and csv file
 
-#load file into s3. Pandas actually leverages boto to connect to s3 and can push the file directly into an s3 bucket
-df.to_csv(filenames3, header=True, line_terminator='\n') 
+#encoding must be adjusted to accommodate abnormal characters. Use s3fs to write to S3 bucket
+byte_encoded_df = df.to_csv(None, index=False).encode() #encodes file as binary
+s3 = s3fs.S3FileSystem(anon=False)
+with s3.open(filenames, 'wb') as file:
+    file.write(byte_encoded_df) #writes byte-encoded file to s3 location
 
 #print success message
 print("Successfull uploaded file to location:"+str(filenames3))
